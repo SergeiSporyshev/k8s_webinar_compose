@@ -1,0 +1,58 @@
+version: "2"
+
+services:
+
+    web:
+        container_name: caramba_fpm
+        build: .
+        volumes:
+            - ../caramba:/var/www/vhosts/caramba/
+            - ../storage:/var/www/vhosts/storage/
+        working_dir: /var/www/vhosts/caramba
+        command: "/usr/sbin/php-fpm7.1 -F -O"
+        environment:
+            XDEBUG_CONFIG: remote_host=192.168.99.1
+        user: "www-data"
+        networks:
+            - cb_net
+    nginx:
+        container_name: caramba_nginx
+        image: nginx
+        expose:
+            - "80"
+        ports:
+            - "80:80"
+        volumes:
+            - ../caramba:/var/www/vhosts/caramba
+            - ../storage:/var/www/vhosts/storage
+            - ./etc/nginx:/etc/nginx
+        networks:
+            cb_net:
+                aliases:
+                    - carambatv.local
+                    - storage.carambatv.local
+
+    mysql:
+        container_name: caramba_mysql
+        image: mysql:5.7
+        volumes:
+            - ./etc/mysql:/etc/mysql/conf.d
+            - ./storage/mysql:/var/lib/mysql
+        ports:
+            - "3306:3306"
+        environment:
+            - MYSQL_ALLOW_EMPTY_PASSWORD=1
+        networks:
+            - cb_net
+
+    elastic:
+        container_name: caramba_elastic
+        image: elasticsearch:2.3.3
+        volumes:
+            - ./storage/elasticsearch:/usr/share/elasticsearch/data
+        networks:
+            - cb_net
+
+networks:
+    cb_net:
+        driver: bridge
